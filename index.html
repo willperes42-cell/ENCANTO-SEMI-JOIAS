@@ -1,0 +1,68 @@
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+<script>
+  // COLE AQUI AS SUAS CREDENCIAIS QUE VOCÊ COPIOU NO PASSO 3
+  const firebaseConfig = {
+    apiKey: "SUA_API_KEY",
+    authDomain: "SEU_PROJETO.firebaseapp.com",
+    projectId: "SEU_PROJETO",
+    storageBucket: "SEU_PROJETO.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
+  };
+
+  // Inicializar Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // FUNÇÃO PARA SALVAR COM FOTO ANEXADA
+  async function saveNew() {
+    const nome = document.getElementById('admName').value;
+    const preco = parseFloat(document.getElementById('admPrice').value);
+    const file = document.getElementById('admFile').files[0]; // Pega o arquivo anexado
+
+    if(!nome || !preco || !file) return alert("Preencha tudo e anexe a foto!");
+
+    // Converter imagem para texto (Base64) para salvar no banco
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async function() {
+        const base64Image = reader.result;
+
+        try {
+            // Salva no Google Cloud (Firestore)
+            await db.collection("produtos").add({
+                nome: nome,
+                preco: preco,
+                img: base64Image,
+                data: new Date()
+            });
+            alert("Joia cadastrada na nuvem! ✨");
+            window.location.reload(); // Recarrega para mostrar o novo item
+        } catch (e) {
+            console.error("Erro ao salvar: ", e);
+        }
+    };
+  }
+
+  // FUNÇÃO PARA CARREGAR PRODUTOS DA NUVEM
+  function renderCloud() {
+      const grid = document.getElementById('vitrine');
+      db.collection("produtos").orderBy("data", "desc").onSnapshot((snapshot) => {
+          grid.innerHTML = "";
+          snapshot.forEach((doc) => {
+              const p = doc.data();
+              grid.innerHTML += `
+                <div class="card">
+                    <img src="${p.img}">
+                    <div class="p-name">${p.nome}</div>
+                    <div class="p-price">R$ ${p.preco.toFixed(2)}</div>
+                    <button class="btn-buy" onclick="addToCart('${p.nome}', ${p.preco})">Adicionar à Sacola</button>
+                </div>`;
+          });
+      });
+  }
+
+  renderCloud(); // Inicia carregando os produtos reais
+</script>
